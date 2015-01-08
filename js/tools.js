@@ -1,6 +1,6 @@
 var config = {
-    httpbase: '/http-bind/',
-    debug: true
+    httpbase : 'https://jwchat.org/http-bind/',
+    debug    : false
 };
 
 function debug(some) {
@@ -15,6 +15,7 @@ function debug(some) {
 ////////////
 
 function Client(config) {
+//    this.con = new JSJaCWebSocketConnection({'httpbase': config.httpbase});
     this.con = new JSJaCHttpBindingConnection({'httpbase': config.httpbase});
     this.con.registerHandler('onconnect', JSJaC.bind(this.connected, this));
     this.con.registerHandler('onerror', function(error) {
@@ -28,8 +29,9 @@ function Client(config) {
 Client.prototype.connected = function() {
     $('#login').hide();
     $('.lead').hide();
+    $("nav").show();
 
-    this.queryNode(this.con.domain)
+    this.queryNode(this.con.domain);
 };
 
 Client.prototype.login = function(jid, pw) {
@@ -127,7 +129,10 @@ Client.prototype.handleDiscoInfoFeature = function(jid, node, feature, cb) {
         break;
     case 'jabber:iq:last':
         query(function(result) {
-            cb("Uptime: " + secondsToString($(result).attr('seconds')));
+            if (jid.indexOf('@') != -1) // it's a client entity
+                cb("Last active: " + secondsToString($(result).attr('seconds')));
+            else
+                cb("Uptime: " + secondsToString($(result).attr('seconds')));
         });
         break;
     case 'jabber:iq:version':
@@ -140,9 +145,10 @@ Client.prototype.handleDiscoInfoFeature = function(jid, node, feature, cb) {
         });
         break;
     default:
-        debug(function() {query(function(result) {
+        debug(function() {
+            query(function(result) {
                 debug(feature['var'] + ': ' + result.xml);
-            })
+            });
         });
     }
 };
@@ -207,6 +213,7 @@ $("#login").submit(function(form) {
     if (jid == '' || pw == '') {
         $('<div class="alert alert-danger">Missing credentials</div>').prependTo('.mybox');
     } else {
+        $(form.target).children("button").button("connecting");
         var client = new Client(config);
         client.login(jid, pw);
 
@@ -215,6 +222,9 @@ $("#login").submit(function(form) {
 
     return false;
 });
+
+$("nav").hide();
+$("#logout-button").click(function(){ location.reload(); });
 
 /////////////
 // HELPERS //
@@ -241,7 +251,8 @@ function attrsToObj(el, attrs) {
     }, {});
 };
 
-// taken from http://stackoverflow.com/questions/8211744/convert-time-interval-given-in-seconds-into-more-human-readable-form
+// taken from
+// http://stackoverflow.com/questions/8211744/convert-time-interval-given-in-seconds-into-more-human-readable-form
 function secondsToString(seconds) {
     var str = "";
     var numyears = Math.floor(seconds / 31536000);
@@ -260,10 +271,3 @@ function secondsToString(seconds) {
     str += numseconds + " seconds";
     return str
 }
-
-//         var skippers = ["muckl@conference.jwchat.org", "jwchat@conference.jwchat.org", "x-berg.de@conference.jwchat.org"];
-
-//         if (skippers.indexOf(jid) != -1) {
-//             console.log("skipping "+jid)
-//             continue;
-//         }

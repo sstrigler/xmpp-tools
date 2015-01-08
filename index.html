@@ -21,17 +21,39 @@
   </head>
   <body>
 
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">XMPP Tools</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="#">Home</a></li>
+          </ul>
+          <button id="logout-button" class="btn btn-danger navbar-btn navbar-right">Logout</button>
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
     <div class="container">
       <div class="jumbotron">
         <h1>XMPP Tools</h1>
         <p class="lead">A collection of tools that help you administrate XMPP services.</p>
         <div class="mybox">
           <form id="login" class="form-signin" role="form">
-            <h2 class="form-signin-heading">Please sign in</h2>
+            <h2 class="form-signin-heading">Please sign in*</h2>
             <input type="jid" class="form-control" placeholder="Jabber-ID" required autofocus>
             <input type="password" class="form-control" placeholder="Password" required>
-            <button class="btn btn-lg btn-primary btn-block" type="submit">Sign in</button>
+            <button class="btn btn-lg btn-primary btn-block" type="submit" data-connecting-text="Connecting...">Sign in</button>
           </form>
+          <div class="well well-sm">*) Use your existing jabber account. This will allow you to adminstrate the service it is registered at.</div>
         </p>
     </div> <!-- /container -->
 
