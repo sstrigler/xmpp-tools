@@ -43,43 +43,47 @@ Client.prototype.logout = function() {
 
 Client.prototype.queryNode = function(jid, node, parent) {
     $('.mybox').empty();
+    $('#back-button').remove();
 
     if (parent) {
         var h2 = parent.name || parent.jid;
         $('.mybox').append('<h2>'+h2+'</h2>');
+        $("<button>",
+          {
+              'id'    : "back-button",
+              'class' : 'btn btn-lg btn-primary',
+              'text'  : "Back",
+              'click' : jQuery.proxy(function() {
+                  this.queryNode(parent.jid, parent.node, parent.parent);
+              }, this)
+          }
+         ).insertAfter('.mybox');
+
     } else {
         $('.mybox').append('<h2>'+this.con.domain+'</h2>');
     }
 
-    var iq = queryIq(jid, node, 'http://jabber.org/protocol/disco#info');
-
-    this.con.sendIQ(
-        iq,
-        {
-            'result_handler': jQuery.proxy(function(result) {
-                debug(result.xml());
-                if ($(result.getQuery()).children().length > 0) {
-                    $('.mybox').append('<h3>Info</h3>');
-                    var ul = $("<ul>").appendTo(".mybox");
-                    $(result.getQuery()).children().each(
-                        jQuery.proxy(
-                            function(i, info) {
-                                this.discoInfoToString(jid, node, info, function(text) {
-                                    $("<li>",
-                                      { 'class': 'disco-info',
-                                        'text' : text }).appendTo(ul);
-                                });
-                            },
-                            this)
-                    );
-                }
-                this.itemsQueryNode(jid, node, parent);
-            }, this),
-            'error_handler': jQuery.proxy(function(error) {
-                this.itemsQueryNode(jid, node, parent);
-            }, this)
-        }
+    this.query(
+        jid, node, 'http://jabber.org/protocol/disco#info',
+        jQuery.proxy(function(result) {
+            if ($(result).children().length > 0) {
+                $('.mybox').append('<h3>Info</h3>');
+                var ul = $("<ul>").appendTo(".mybox");
+                $(result).children().each(
+                    jQuery.proxy(
+                        function(i, info) {
+                            this.discoInfoToString(jid, node, info, function(text) {
+                                $("<li>",
+                                  { 'class': 'disco-info',
+                                    'text' : text }).appendTo(ul);
+                            });
+                        },
+                        this)
+                );
+            }
+        }, this)
     );
+    this.itemsQueryNode(jid, node, parent);
 };
 
 Client.prototype.discoInfoToString = function(jid, node, info, cb) {
@@ -151,55 +155,36 @@ Client.prototype.query = function(jid, node, ns, cb) {
 }
 
 Client.prototype.itemsQueryNode = function(jid, node, parent) {
-    var iq = queryIq(jid, node, 'http://jabber.org/protocol/disco#items');
-
-    var addButton = jQuery.proxy(function() {
-        if (typeof parent != 'undefined') {
-            $("<button>",
-              {
-                  'class': 'btn btn-lg btn-primary',
-                  text: "Back",
-                  click: jQuery.proxy(function() {
-                      this.queryNode(parent.jid, parent.node, parent.parent);
-                  }, this)
-              }
-             ).appendTo('.mybox');
-        }
-    }, this);
-
-    this.con.sendIQ(
-        iq,
-        {
-            'result_handler': jQuery.proxy(function(result) {
-                debug(result.xml());
-                if ($(result.getQuery()).children().length == 0) return addButton();
-                $('.mybox').append('<h3>Items</h3>');
-                $('.mybox').append('<p class="lead">Click to inspect</p>');
-                var ul = $("<ul>").appendTo('.mybox');
-                $(result.getQuery()).children().each(jQuery.proxy(function(i, item) {
-                    var name    = $(item).attr('name');
-                    var newJid  = $(item).attr('jid');
+    this.query(
+        jid,
+        node,
+        'http://jabber.org/protocol/disco#items',
+        jQuery.proxy(function(result) {
+            if ($(result).children().length == 0) return;
+            $('.mybox').append('<h3>Items</h3>');
+            $('.mybox').append('<div class="alert alert-info" role="alert">Click to inspect</div>');
+            var ul = $("<ul>").appendTo('.mybox');
+            $(result).children().each(jQuery.proxy(function(i, item) {
+                var name    = $(item).attr('name');
+                var newJid  = $(item).attr('jid');
                     var newNode = $(item).attr('node') || '';
-                    var text    = name || newJid;
-                    $("<li>",
-                      {
-                          text: text,
-                          jid: newJid,
-                          node: newNode,
-                          click: jQuery.proxy(function(el) {
-                              this.queryNode(el.target.getAttribute('jid'),
-                                             el.target.getAttribute('node'),
-                                             {name: text,
-                                              jid: jid,
-                                              node:node,
-                                              parent:parent});
-                          }, this)
-                      }).appendTo(ul);;
-                }, this));
-                addButton();
-            }, this),
-            'error_handler': function() { addButton() }
-        }
+                var text    = name || newJid;
+                $("<li>",
+                  {
+                      text: text,
+                      jid: newJid,
+                      node: newNode,
+                      click: jQuery.proxy(function(el) {
+                          this.queryNode(el.target.getAttribute('jid'),
+                                         el.target.getAttribute('node'),
+                                         {name: text,
+                                          jid: jid,
+                                          node:node,
+                                          parent:parent});
+                      }, this)
+                  }).appendTo(ul);;
+            }, this));
+        }, this)
     );
 };
 
@@ -208,14 +193,12 @@ Client.prototype.itemsQueryNode = function(jid, node, parent) {
 //////////
 
 $("#login").submit(function(form) {
-
     var jid = form.target.elements[0].value;
     var pw  = form.target.elements[1].value;
 
     if (jid == '' || pw == '') {
-        // show some error
+        $('<div class="alert alert-danger">Missing credentials</div>').prependTo('.mybox');
     } else {
-
         var client = new Client(config);
         client.login(jid, pw);
 
@@ -234,7 +217,7 @@ function queryIq(jid, node, namespace) {
     iq.setTo(jid);
     iq.setType('get')
     var query = iq.setQuery(namespace);
-    if (typeof node != 'undefined') {
+    if (node) {
         query.setAttribute('node', node);
     }
 
