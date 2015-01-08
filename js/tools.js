@@ -17,6 +17,12 @@ function debug(some) {
 function Client(config) {
     this.con = new JSJaCHttpBindingConnection({'httpbase': config.httpbase});
     this.con.registerHandler('onconnect', JSJaC.bind(this.connected, this));
+    this.con.registerHandler('onerror', function(error) {
+        debug(error);
+        switch ($(error).attr('code')) {
+            case '401': $('<div class="alert alert-danger">Authorization failed</div>').prependTo('.mybox');
+        }
+    });
 };
 
 Client.prototype.connected = function() {
@@ -195,6 +201,8 @@ Client.prototype.itemsQueryNode = function(jid, node, parent) {
 $("#login").submit(function(form) {
     var jid = form.target.elements[0].value;
     var pw  = form.target.elements[1].value;
+
+    $('.mybox .alert').remove();
 
     if (jid == '' || pw == '') {
         $('<div class="alert alert-danger">Missing credentials</div>').prependTo('.mybox');
