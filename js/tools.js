@@ -26,8 +26,46 @@ Client.prototype.logout = function() {
 Client.prototype.connected = function() {
     $('.jumbotron').empty();
     $('.jumbotron').text("connected");
-    console.log("connected");
-    this.con.send(new JSJaCPresence());
+
+    var iq = new JSJaCIQ();
+    iq.setIQ('conference.jwchat.org', 'get', 'confiq');
+    iq.setQuery('http://jabber.org/protocol/disco#items');
+
+    this.con.sendIQ(iq, {
+        'result_handler': JSJaC.bind(function(result) {
+            console.log(result.xml());
+            var items = result.getQuery().childNodes;
+            console.log(items.length);
+
+            var ul = document.createElement('ul');
+            $('.jumbotron').append(ul);
+
+            var skippers = ["muckl@conference.jwchat.org", "jwchat@conference.jwchat.org", "x-berg.de@conference.jwchat.org"];
+
+            for (var i=0; i<items.length; i++) {
+                var jid = items.item(i).getAttribute('jid');
+                if (skippers.indexOf(jid) != -1) {
+                    console.log("skipping "+jid)
+                    continue;
+                }
+                var delIq = new JSJaCIQ();
+                delIq.setIQ(jid, 'set', 'del_room_'+i);
+                var query = delIq.setQuery('http://jabber.org/protocol/muc#owner');
+                query.appendChild(document.createElement('destroy'));
+                this.con.sendIQ(delIq, {
+                    'result_handler': function(delres) {
+                        $(ul).append("<li>deleted "+delres.getFrom()+"</li>");
+                    },
+                    'error_handler': function(error) {
+                        $(ul).append("<li>error deleting "+error.getFrom()+"</li>");
+                        //console.log(error.xml());
+                    }
+
+                });
+                //$(ul).append("<li>"+jid+"</li>");
+            }
+        }, this) // result_handler
+    });
 };
 
 $("#login").submit(function(form) {
@@ -47,4 +85,3 @@ $("#login").submit(function(form) {
 
     return false;
 });
-
