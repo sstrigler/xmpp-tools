@@ -1,0 +1,4 @@
+var config = {
+    httpbase : 'https://jwchat.org/http-bind/',
+    debug    : false
+};
