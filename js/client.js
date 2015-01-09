@@ -1,13 +1,13 @@
-////////////
-// CLIENT //
-////////////
+//////////////////////
+// XMPPTools.CLIENT //
+//////////////////////
 
-function Client(config) {
-//    this.con = new JSJaCWebSocketConnection({'httpbase': config.httpbase});
+XMPPTools.Client = function(config) {
+    //    this.con = new JSJaCWebSocketConnection({'httpbase': config.httpbase});
     this.con = new JSJaCHttpBindingConnection({'httpbase': config.httpbase});
     this.con.registerHandler('onconnect', JSJaC.bind(this.connected, this));
     this.con.registerHandler('onerror', function(error) {
-        debug(error);
+        XMPPTools.utils.debug(error);
         switch ($(error).attr('code')) {
         case '503':
             $('<div class="alert alert-danger">Service unavailable</div>').prependTo('.mybox');
@@ -20,7 +20,7 @@ function Client(config) {
     });
 };
 
-Client.prototype.connected = function() {
+XMPPTools.Client.prototype.connected = function() {
     $('#login').hide();
     $('.lead').hide();
     $("nav").show();
@@ -28,7 +28,7 @@ Client.prototype.connected = function() {
     this.queryNode(this.con.domain);
 };
 
-Client.prototype.login = function(jid, pw) {
+XMPPTools.Client.prototype.login = function(jid, pw) {
     var domain = jid.substring(jid.indexOf('@')+1);
     var username = jid.substring(0, jid.indexOf('@'));
     this.con.connect(
@@ -39,24 +39,24 @@ Client.prototype.login = function(jid, pw) {
     );
 };
 
-Client.prototype.logout = function() {
+XMPPTools.Client.prototype.logout = function() {
     this.con.disconnect();
 };
 
-Client.prototype.query = function(jid, node, ns, cb) {
-    var iq = queryIq(jid, node, ns);
+XMPPTools.Client.prototype.query = function(jid, node, ns, cb) {
+    var iq = XMPPTools.utils.queryIq(jid, node, ns);
     this.con.sendIQ(
         iq,
         {
             result_handler: function(result) {
-                debug(result.xml());
+                XMPPTools.utils.debug(result.xml());
                 cb(result.getNode().firstChild);
             }
         }
     );
-}
+};
 
-Client.prototype.queryNode = function(jid, node, parent) {
+XMPPTools.Client.prototype.queryNode = function(jid, node, parent) {
     $('.mybox').empty();
     $('#back-button').remove();
 
@@ -101,26 +101,27 @@ Client.prototype.queryNode = function(jid, node, parent) {
     this.itemsQueryNode(jid, node, parent);
 };
 
-Client.prototype.discoInfoToString = function(jid, node, info, cb) {
+XMPPTools.Client.prototype.discoInfoToString = function(jid, node, info, cb) {
     var tagName = info.tagName;
     info = $(info);
     switch (tagName) {
     case 'identity':
         this.handleDiscoInfoIdentity(
-            attrsToObj(info, ['name', 'category', 'type']), cb);
+            XMPPTools.utils.attrsToObj(info, ['name', 'category', 'type']), cb);
         break;
     case 'feature':
-        this.handleDiscoInfoFeature(jid, node, attrsToObj(info, ['var']), cb);
+        this.handleDiscoInfoFeature(
+            jid, node, XMPPTools.utils.attrsToObj(info, ['var']), cb);
         break;
     }
 };
 
-Client.prototype.handleDiscoInfoIdentity = function(identity, cb) {
+XMPPTools.Client.prototype.handleDiscoInfoIdentity = function(identity, cb) {
     if (identity.name)
         cb(identity.category + ' ('+identity.type+'): ' + identity.name);
 };
 
-Client.prototype.handleDiscoInfoFeature = function(jid, node, feature, cb) {
+XMPPTools.Client.prototype.handleDiscoInfoFeature = function(jid, node, feature, cb) {
     var query = jQuery.proxy(function(specific_callback) {
         this.query(jid, node, feature['var'], specific_callback);
     }, this);
@@ -137,9 +138,11 @@ Client.prototype.handleDiscoInfoFeature = function(jid, node, feature, cb) {
     case 'jabber:iq:last':
         query(function(result) {
             if (jid.indexOf('@') != -1) // it's a client entity
-                cb("Last active: " + secondsToString($(result).attr('seconds')));
+                cb("Last active: " +
+                   XMPPTools.utils.secondsToString($(result).attr('seconds')));
             else
-                cb("Uptime: " + secondsToString($(result).attr('seconds')));
+                cb("Uptime: " +
+                   XMPPTools.utils.secondsToString($(result).attr('seconds')));
         });
         break;
     case 'jabber:iq:version':
@@ -152,15 +155,15 @@ Client.prototype.handleDiscoInfoFeature = function(jid, node, feature, cb) {
         });
         break;
     default:
-        debug(function() {
+        XMPPTools.utils.debug(function() {
             query(function(result) {
-                debug(feature['var'] + ': ' + result.xml);
+                XMPPTools.utils.debug(feature['var'] + ': ' + result.xml);
             });
         });
     }
 };
 
-Client.prototype.itemsQueryNode = function(jid, node, parent) {
+XMPPTools.Client.prototype.itemsQueryNode = function(jid, node, parent) {
     this.query(
         jid,
         node,
@@ -169,17 +172,18 @@ Client.prototype.itemsQueryNode = function(jid, node, parent) {
             if ($(result).children().length == 0) return;
             $('.mybox').append('<h3>Items</h3>');
             $('.mybox').append('<div class="alert alert-info" role="alert">Click to inspect</div>');
-            var ul = $("<ul>").appendTo('.mybox');
+            var ul = $("<ul class='nav nav-pills nav-stacked'>").appendTo('.mybox');
             $(result).children().each(jQuery.proxy(function(i, item) {
                 var name    = $(item).attr('name');
                 var newJid  = $(item).attr('jid');
-                    var newNode = $(item).attr('node') || '';
+                var newNode = $(item).attr('node') || '';
                 var text    = name || newJid;
+                var a = $("<a>", {text: text, href: '#'});
                 $("<li>",
                   {
-                      text: text,
                       jid: newJid,
                       node: newNode,
+                      role: 'presentation',
                       click: jQuery.proxy(function(el) {
                           this.queryNode(el.target.getAttribute('jid'),
                                          el.target.getAttribute('node'),
@@ -188,7 +192,7 @@ Client.prototype.itemsQueryNode = function(jid, node, parent) {
                                           node:node,
                                           parent:parent});
                       }, this)
-                  }).appendTo(ul);;
+                  }).appendTo(ul).append(a);
             }, this));
         }, this)
     );
