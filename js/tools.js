@@ -23,3 +23,8 @@ $("#login").submit(function(form) {
 
 $("nav").hide();
 $("#logout-button").click(function(){ location.reload(); });
+
+if (config.auto_login) {
+    $('#login')[0].elements[0].value = config.auto_login.user;
+    $('#login')[0].elements[1].value = config.auto_login.password;
+}

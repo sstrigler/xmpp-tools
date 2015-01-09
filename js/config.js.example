@@ -1,4 +1,9 @@
 var config = {
-    httpbase : 'https://jwchat.org/http-bind/',
-    debug    : false
+    httpbase : '/http-bind/',
+    debug    : true,
+    auto_login :
+    {
+        user: 'test@localhost',
+        password: 'topSecret'
+    }
 };
