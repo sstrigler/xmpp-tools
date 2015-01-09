@@ -9,8 +9,14 @@ function Client(config) {
     this.con.registerHandler('onerror', function(error) {
         debug(error);
         switch ($(error).attr('code')) {
-            case '401': $('<div class="alert alert-danger">Authorization failed</div>').prependTo('.mybox');
+        case '503':
+            $('<div class="alert alert-danger">Service unavailable</div>').prependTo('.mybox');
+            break;
+        case '401':
+            $('<div class="alert alert-danger">Authorization failed</div>').prependTo('.mybox');
+            break;
         }
+        $('#login button').button('reset');
     });
 };
 
