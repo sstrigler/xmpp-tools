@@ -43,6 +43,19 @@ Client.prototype.logout = function() {
     this.con.disconnect();
 };
 
+Client.prototype.query = function(jid, node, ns, cb) {
+    var iq = queryIq(jid, node, ns);
+    this.con.sendIQ(
+        iq,
+        {
+            result_handler: function(result) {
+                debug(result.xml());
+                cb(result.getNode().firstChild);
+            }
+        }
+    );
+}
+
 Client.prototype.queryNode = function(jid, node, parent) {
     $('.mybox').empty();
     $('#back-button').remove();
@@ -146,19 +159,6 @@ Client.prototype.handleDiscoInfoFeature = function(jid, node, feature, cb) {
         });
     }
 };
-
-Client.prototype.query = function(jid, node, ns, cb) {
-    var iq = queryIq(jid, node, ns);
-    this.con.sendIQ(
-        iq,
-        {
-            result_handler: function(result) {
-                debug(result.xml());
-                cb(result.getNode().firstChild);
-            }
-        }
-    );
-}
 
 Client.prototype.itemsQueryNode = function(jid, node, parent) {
     this.query(
